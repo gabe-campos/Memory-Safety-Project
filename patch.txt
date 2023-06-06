@@ -1,0 +1,50 @@
+campo193@csel-vole-34:~/csci_4271W/p1$ diff -up bcimgview.c bcimgview_fixed.c
+--- bcimgview.c    2022-11-16 15:21:23.464711457 -0600
++++ bcimgview_fixed.c    2022-12-09 18:35:05.002132844 -0600
+@@ -167,14 +167,18 @@ int process_tagged_data(FILE *fh, struct
+                 }
+                 /* Add null terminator */
+                 fmt_buf[size] = 0;
+-                logging_fmt = fmt_buf;
++
++                // FIX #3 dont let the user set logging_fmt, leads to
++                // too many vulnerabilities
++                //logging_fmt = fmt_buf;
++
+             } else {
+                 /* An unrecognized tag is an error. */
+                 format_problem = "unrecognized tag";
+                 return 0;
+             }
+         }
+-    
++
+ }
+ 
+ /* Read the pixel data from a BCRAW image into the internal
+@@ -264,6 +268,13 @@ struct image_info *parse_bcraw(FILE *fh)
+         height = read_u64_bigendian(fh);
+         if (height == -1) return 0;
+ 
++        // FIX #1
++        // need to make sure width and height will not overflow num_bytes
++        if((3 * width * height) > INT_MAX){
++            fprintf(stderr, "File width or height too large\n");
++            return 0;
++        }
++
+         num_bytes = 3 * width * height;
+         pixels = xmalloc(num_bytes +
+                          TRAILER_ALIGNMENT + sizeof(struct image_info));
+@@ -407,9 +418,10 @@ struct image_info *parse_bcprog(FILE *fh
+         height = read_u64_bigendian(fh);
+         if (height == -1) return 0;
+ 
++        // FIX #2 make sure height cannot be equal to 2
+         /* Size must be positive, and tall enough for the progressive
+            algorithm */
+-        if (height < 2 || width < 1) {
++        if (height <= 2 || width < 1) {
+             format_problem = "size too small";
+             return 0;
+         }
